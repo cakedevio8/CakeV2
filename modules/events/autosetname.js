@@ -1,46 +1,59 @@
 module.exports.config = {
-    name: "autosetname",
-    eventType: ["log:subscribe"],
-    version: "1.0.3",
-    credits: "D-Jukie",
-    description: "Tự động đặt biệt danh cho thành viên mới"
+  name: "autosetname",
+  version: "1.0.0",
+  hasPermssion: 1,
+  credits: "Cake Country",
+  description: "Tự động set biệt danh khi có người vào",
+  commandCategory: "Quản Trị",
+  usages: "on/off/set [format]",
+  cooldowns: 5
 };
 
-module.exports.run = async function ({ api, event, Users }) {
-    const { threadID } = event;
-    const memJoin = event.logMessageData.addedParticipants;
+module.exports.run = async function ({ api, event, args, Threads }) {
 
-    const { readFileSync, existsSync, writeFileSync } = global.nodemodule["fs-extra"];
-    const { join } = global.nodemodule["path"];
-    const moment = require('moment-timezone');
-    const pathData = join(__dirname, '../commands/cache/data/autosetname.json');
+  const { threadID, messageID } = event;
 
-    if (!existsSync(pathData)) {
-        writeFileSync(pathData, "[]", "utf-8");
-        console.log("✅ Đã tạo file autosetname.json mới.");
-    }
+  if (!args[0]) {
+    return api.sendMessage(
+`📌 Hướng dẫn dùng autosetname:
 
-    let dataJson;
-    try {
-        dataJson = JSON.parse(readFileSync(pathData, "utf-8"));
-    } catch (error) {
-        console.error("Lỗi khi đọc dữ liệu autosetname:", error);
-        return api.sendMessage("⚠️ Không thể đọc dữ liệu autosetname!", threadID);
-    }
+• ${global.config.PREFIX}autosetname on
+• ${global.config.PREFIX}autosetname off
+• ${global.config.PREFIX}autosetname set [format]
 
-    const thisThread = dataJson.find(item => item.threadID == threadID);
-    if (!thisThread || thisThread.nameUser.length === 0) return;
+Biến hỗ trợ:
+{name}  → Tên đầy đủ
+{short} → Tên ngắn
+{tv}    → Số thành viên
+{time}  → Thời gian`,
+      threadID, messageID);
+  }
 
-    const setNameTemplate = thisThread.nameUser[0];
+  const data = (await Threads.getData(threadID)).data || {};
 
-    for (const { userFbId: idUser, fullName } of memJoin) {
-        const nickname = setNameTemplate
-            .replace(/{name}/g, fullName)
-            .replace(/{time}/g, moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss | DD/MM/YYYY'));
+  if (args[0] == "on") {
+    data.autoSetName = data.autoSetName || {};
+    data.autoSetName.status = true;
+    await Threads.setData(threadID, { data });
+    return api.sendMessage("✅ Đã bật autosetname", threadID, messageID);
+  }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        api.changeNickname(nickname, threadID, idUser);
-    }
+  if (args[0] == "off") {
+    data.autoSetName = data.autoSetName || {};
+    data.autoSetName.status = false;
+    await Threads.setData(threadID, { data });
+    return api.sendMessage("❌ Đã tắt autosetname", threadID, messageID);
+  }
 
-    return api.sendMessage("🔄 Đang tiến hành tự động set name cho thành viên mới...", threadID, event.messageID);
+  if (args[0] == "set") {
+    const format = args.slice(1).join(" ");
+    if (!format) return api.sendMessage("⚠️ Vui lòng nhập format.", threadID, messageID);
+
+    data.autoSetName = data.autoSetName || {};
+    data.autoSetName.format = format;
+    await Threads.setData(threadID, { data });
+
+    return api.sendMessage("💾 Đã lưu format autosetname", threadID, messageID);
+  }
+};t name cho thành viên mới...", threadID, event.messageID);
 };
