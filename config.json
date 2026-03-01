@@ -63,6 +63,9 @@
         "maxPlayers": 10,
         "getDelay": 8
     },
+    "cave": {
+        "cooldownTime": 86400
+    },
     "farm": {
         "cooldownTime": 300000
     },
@@ -73,12 +76,4 @@
     "minecraft": {
         "APIKEY": ""
     }
-}
-        "autoUnsend": true,
-        "delayUnsend": 60
-    },
-    "minecraft": {
-        "APIKEY": ""
-    }
-}
 }
