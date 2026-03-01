@@ -2,7 +2,7 @@ module.exports.config = {
 	name: "joinnoti",
 	eventType: ["log:subscribe"],
 	version: "1.0.1",
-	credits: "Mirai Team",
+	credits: "Cake",
 	description: "Thông báo bot hoặc người vào nhóm + shareContact",
 	dependencies: {
 		"fs-extra": "",
@@ -35,87 +35,71 @@ module.exports.run = async function({ api, event, Users  , Threads}) {
   if (typeof thread["joinNoti"] != "undefined" && thread["joinNoti"] == false) return;
   ///////////////////////////////////////////////////////
 	if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-		api.changeNickname(`[ ${global.config.PREFIX} ] • ${(!global.config.BOTNAME) ? "Made by Khôi" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
+		api.changeNickname(`⟬ ${global.config.PREFIX} ⟭ ➣ ${(!global.config.BOTNAME) ? "Made by cake" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
 		const fs = require("fs");
-    var mlg="Kết nối thành công\nĐã load toàn bộ lệnh và người dùng trong nhóm.\n❌ Nếu nhóm của bạn chưa kích hoạt sử dụng bot, vui lòng sử dụng lệnh 'callad' để liên hệ Admin.\n─────────────────\n🌐 Facebook: https://www.facebook.com/100018277053087"
+    var mlg="⚜️═════[ Đã kết nối thành công ]══════⚜️\nHãy liên hệ với admin để thuê bot nha❤️\nDùng lệnh "callad" để liên hệ với admin\nFaceBook của admin:\nhttps://www.facebook.com/share/1Fv6QGTynR/"
     	return api.sendMessage(threadID,async () => {
-await api.shareContact(`${mlg}`, 100018277053087, threadID);
+await api.shareContact(`${mlg}`,61561101096216, threadID);
 });
 
 	}
 	else {
 		try {
-		  let thread_data = await Threads.getData(threadID);
-		  
-		  if (!!thread_data) {
-		    let send = msg=>api.sendMessage(msg, threadID);
-		    let asnn = thread_data && thread_data.data ? thread_data.data.auto_set_nickname : null;
+    const { threadName, participantIDs } = await api.getThreadInfo(threadID);
+    const time = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss - DD/MM/YYYY");
 
-    if (!!asnn && !!asnn.all) {
-      let time_join = time_str(Date.now()+25200000);
-      for (let {
-          fullName,
-          firstName,
-          userFbId: id,
-        } of event.logMessageData.addedParticipants)try {
-          let name_set = asnn.all.replace(/\${full_name}/g, fullName).replace(/\${short_name}/g, firstName).replace(/\${time_join}/g, time_join);//eval(`(()=>\`${asnn.all}\`)()`);
-          
-          await new Promise(resolve=>api.changeNickname(name_set, threadID, id, (err, res)=>resolve()));
-      } catch {};
-      
-      send(`Đã set biệt danh cho TVM`);
-    };
-		  };
-		  
-			const { createReadStream, existsSync, mkdirSync, readdirSync } = global.nodemodule["fs-extra"];
-			let { threadName, participantIDs } = await api.getThreadInfo(threadID);
-      const moment = require("moment-timezone");
-      const time = moment.tz("Asia/Ho_Chi_Minh").format(" HH:mm:ss - DD/MM/YYYY");
-      const hours = moment.tz("Asia/Ho_Chi_Minh").format("HH");
-      var thu = moment.tz('Asia/Ho_Chi_Minh').format('dddd');
-  if (thu == 'Sunday') thu = 'Chủ Nhật'
-  if (thu == 'Monday') thu = 'Thứ Hai'
-  if (thu == 'Tuesday') thu = 'Thứ Ba'
-  if (thu == 'Wednesday') thu = 'Thứ Tư'
-  if (thu == "Thursday") thu = 'Thứ Năm'
-  if (thu == 'Friday') thu = 'Thứ Sáu'
-  if (thu == 'Saturday') thu = 'Thứ Bảy'
-			const threadData = global.data.threadData.get(parseInt(threadID)) || {};
-			/*const path = join(__dirname, "cache", "joinGif");
-			const pathGif = join(path, `join.mp4`);
-*/
-				var mentions = [], nameArray = [], memLength = [], iduser = [], i = 0;
-			
-			for (id in event.logMessageData.addedParticipants) {
-		const userName = event.logMessageData.addedParticipants[id].fullName; iduser.push(event.logMessageData.addedParticipants[id].userFbId.toString());
-        nameArray.push(userName);
-        mentions.push({ tag: userName, id: event.senderID });
-        memLength.push(participantIDs.length - i++);
-        console.log(userName)
-			}
-			memLength.sort((a, b) => a - b);
-			
-			(typeof threadData.customJoin == "undefined") ? msg = "‎[ Thành Viên Vào Nhóm ]\n─────────────────\n🎀Chào mừng {name} đã đến với box {threadName}.\n👤{type} là thành viên thứ {soThanhVien} của nhóm\n🎀 {type} được thêm bởi: {author}\n⏰ Thời gian:{time}\n📆 Vào buổi {session} {thu}" : msg = threadData.customJoin;
-      var getData = await Users.getData(event.author)
-var nameAuthor = typeof getData.name == "undefined" ? "Người dùng tự vào" : getData.name
-			msg = msg
-         .replace(/\{iduser}/g, iduser.join(', '))
-			.replace(/\{name}/g, nameArray.join(', '))
-			.replace(/\{type}/g, (memLength.length > 1) ?  'Các bạn': 'Bạn')
-			.replace(/\{soThanhVien}/g, memLength.join(', '))
-         .replace(/\{author}/g, nameAuthor)
-         .replace(/\{idauthor}/g, event.author)
-			.replace(/\{threadName}/g, threadName)
-      .replace(/\{thu}/g, thu)
-      .replace(/\{session}/g, hours <= 10 ? "sáng" : 
-    hours > 10 && hours <= 12 ? "trưa" :
-    hours > 12 && hours <= 18 ? "chiều" : "tối")
-    .replace(/\{time}/g, time);
-    
-			return api.sendMessage(threadID, async () => {
-  for (const participant of event.logMessageData.addedParticipants) {
-    await api.shareContact(`${msg}`, participant.userFbId, threadID);}
-});
-} catch (e) { return console.log(e) };
-}
-}
+    for (let user of event.logMessageData.addedParticipants) {
+
+      const name = user.fullName;
+      const uid = user.userFbId;
+
+      const canvas = Canvas.createCanvas(1200, 630);
+      const ctx = canvas.getContext("2d");
+
+      // ===== LOAD BACKGROUND =====
+      const background = await Canvas.loadImage(__dirname + "/cache/background.png");
+      ctx.drawImage(background, 0, 0, 1200, 630);
+
+      // ===== LOAD AVATAR =====
+      const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+      const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
+      const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data, "binary"));
+
+      // ===== VẼ AVATAR TRÒN (đúng khung giữa ảnh m gửi) =====
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(600, 315, 150, 0, Math.PI * 2, true); // chính giữa
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatarImg, 450, 165, 300, 300);
+      ctx.restore();
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#2e4f2e";
+
+      // ===== CHỮ PHÍA TRÊN =====
+      ctx.font = "bold 50px Arial";
+      ctx.fillText("Chào mừng thành viên mới", 600, 90);
+
+      ctx.font = "40px Arial";
+      ctx.fillText(`Bạn là thành viên thứ ${participantIDs.length}`, 600, 150);
+
+      ctx.fillText(`Của nhóm ${threadName}`, 600, 200);
+
+      // ===== CHỮ PHÍA DƯỚI =====
+      ctx.font = "bold 45px Arial";
+      ctx.fillText(name, 600, 520);
+
+      ctx.font = "30px Arial";
+      ctx.fillText(time, 600, 570);
+
+      // ===== LƯU & GỬI =====
+      const pathSave = __dirname + `/cache/welcome_${uid}.png`;
+      fs.writeFileSync(pathSave, canvas.toBuffer())pwait api.sendMessage({
+  body: `🌱=====[THÀNH VIÊN VÀO NHÓM]=====🌱\nXin chào, bạn được thêm vào nhóm ${threadName}\nChúc bạn 1 ngày vui vẻ nhé❤️`,
+  mentions: [{
+    tag: name,
+    id: uid
+  }],
+  attachment: fs.createReadStream(pathSave)
+}, threadID);
