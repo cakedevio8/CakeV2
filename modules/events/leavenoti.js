@@ -1,77 +1,108 @@
 module.exports.config = {
-    name: "leavenoti",
-    eventType: ["log:unsubscribe"],
-    version: "1.0.0",
-    credits: "HĐGN",
-    description: "Thông báo Bot hoặc người dùng rời khỏi nhóm + shareContact",
-    dependencies: {
-        "fs-extra": "",
-        "path": ""
-    }
+  name: "leavenoti",
+  eventType: ["log:unsubscribe"],
+  version: "2.0.0",
+  credits: "Cake Country",
+  description: "Leave Premium Image",
 };
 
-const checkttPath = __dirname + '/../commands/_checktt/'
+module.exports.run = async function ({ api, event, Users }) {
+  const fs = require("fs-extra");
+  const axios = require("axios");
+  const Canvas = require("canvas");
+  const moment = require("moment-timezone");
 
+  if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
 
-module.exports.onLoad = function () {
-    const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
-    const { join } = global.nodemodule["path"];
+  const { threadID } = event;
 
-    const path = join(__dirname, "cache", "leaveGif");
-    if (existsSync(path)) mkdirSync(path, { recursive: true });
+  try {
+    const { threadName, participantIDs } = await api.getThreadInfo(threadID);
 
-    const path2 = join(__dirname, "cache", "leaveGif");
-    if (!existsSync(path2)) mkdirSync(path2, { recursive: true });
-
-    return;
-}
-
-module.exports.run = async function ({ api, event, Users, Threads }) {
-    if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
-    const { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } = global.nodemodule["fs-extra"];
-    const { join } = global.nodemodule["path"];    
-    const { threadID } = event;
-    const moment = require("moment-timezone");
+    const uid = event.logMessageData.leftParticipantFbId;
+    const name = await Users.getNameUser(uid);
     const time = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss - DD/MM/YYYY");
-    const hours = moment.tz("Asia/Ho_Chi_Minh").format("HH");
-    var thu = moment.tz('Asia/Ho_Chi_Minh').format('dddd');
-  if (thu == 'Sunday') thu = 'Chủ Nhật'
-  if (thu == 'Monday') thu = 'Thứ Hai'
-  if (thu == 'Tuesday') thu = 'Thứ Ba'
-  if (thu == 'Wednesday') thu = 'Thứ Tư'
-  if (thu == "Thursday") thu = 'Thứ Năm'
-  if (thu == 'Friday') thu = 'Thứ Sáu'
-  if (thu == 'Saturday') thu = 'Thứ Bảy'
-    const data = global.data.threadData.get(parseInt(threadID)) || (await Threads.getData(threadID)).data;
-    const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
-    const uid =  (event.logMessageData.leftParticipantFbId);
-    const type = (event.author == event.logMessageData.leftParticipantFbId) ? "Đã tự động rời khỏi nhóm." : "Đã bị Quản trị viên xóa khỏi nhóm.";
-    const path = join(__dirname, "cache", "leaveGif");
-    const gifPath = join(path, `bye.gif`);
-    var msg, formPush
 
-    if (existsSync(checkttPath + threadID + '.json')) {
-        const threadData = JSON.parse(readFileSync(checkttPath + threadID + '.json'));
-        const userData_week_index = threadData.week.findIndex(e => e.id == event.logMessageData.leftParticipantFbId);
-        const userData_day_index = threadData.day.findIndex(e => e.id == event.logMessageData.leftParticipantFbId);
-        const userData_total_index = threadData.total.findIndex(e => e.id == event.logMessageData.leftParticipantFbId);
-        if (userData_total_index != -1) {
-            threadData.total.splice(userData_total_index, 1);
-        }
-        if (userData_week_index != -1) {
-            threadData.week.splice(userData_week_index, 1);
-        }
-        if (userData_day_index != -1) {
-            threadData.day.splice(userData_day_index, 1);
-        }
+    const type = (event.author == uid)
+      ? "Đã tự rời khỏi nhóm"
+      : "Đã bị quản trị viên xóa khỏi nhóm";
 
-        writeFileSync(checkttPath + threadID + '.json', JSON.stringify(threadData, null, 4));
-    }
-    if (existsSync(path)) mkdirSync(path, { recursive: true });
+    const canvas = Canvas.createCanvas(1200, 630);
+    const ctx = canvas.getContext("2d");
 
-    (typeof data.customLeave == "undefined") ? msg = "[ Thành Viên Thoát Nhóm ]\n─────────────────\n👤 Thành viên: {name}\n📌 Lý do: {type}\n📆 Thoát nhóm vào lúc {thu}\n⏰ Thời gian: {time}" : msg = data.customLeave;
-    msg = msg.replace(/\{name}/g, name).replace(/\{type}/g, type).replace(/\{time}/g, time).replace(/\{uid}/g, uid).replace(/\{thu}/g, thu); 
-    return api.sendMessage(threadID, async () => {
-await api.shareContact(`${msg}`, event.logMessageData.leftParticipantFbId, threadID);
-});
-}
+    // ===== LOAD BACKGROUND =====
+    const background = await Canvas.loadImage(__dirname + "/cache/leave_bg.png");
+    ctx.drawImage(background, 0, 0, 1200, 630);
+
+    // ===== LOAD AVATAR =====
+    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+    const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
+    const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data, "binary"));
+
+    // ===== AVATAR TRÒN =====
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(600, 315, 150, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(avatarImg, 450, 165, 300, 300);
+    ctx.restore();
+
+    // ===== BÓNG ĐỔ =====
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#2e4f2e";
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+
+    // ===== CHỮ PHÍA TRÊN =====
+    ctx.font = "bold 55px Arial";
+    ctx.fillText("Tạm biệt thành viên", 600, 90);
+
+    ctx.font = "42px Arial";
+    ctx.fillText(`Thành viên hiện tại: ${participantIDs.length}`, 600, 150);
+
+    ctx.fillText(`Nhóm: ${threadName}`, 600, 200);
+
+    // ===== CHỮ PHÍA DƯỚI =====
+    ctx.font = "bold 50px Arial";
+    ctx.fillText(name, 600, 520);
+
+    ctx.font = "30px Arial";
+    ctx.fillText(type, 600, 560);
+
+    ctx.fillText(time, 600, 600);
+
+    ctx.shadowBlur = 0;
+
+    const pathSave = __dirname + `/cache/leave_${uid}.png`;
+    fs.writeFileSync(pathSave, canvas.toBuffer());
+
+    // ===== TIN NHẮN ĐẸP =====
+    await api.sendMessage({
+      body:
+`🍃━━━━━━━━━━━━━━━━━━🍃
+💔 𝐓𝐀̣𝐌 𝐁𝐈𝐄̣̂𝐓 𝐓𝐇𝐀̀𝐍𝐇 𝐕𝐈𝐄̂𝐍 💔
+🍃━━━━━━━━━━━━━━━━━━🍃
+
+👤 ${name}
+📌 ${type}
+
+🏷 Nhóm: ${threadName}
+⏰ ${time}
+
+Chúc bạn mọi điều tốt đẹp 🌿`,
+      mentions: [{
+        tag: name,
+        id: uid
+      }],
+      attachment: fs.createReadStream(pathSave)
+    }, threadID);
+
+    fs.unlinkSync(pathSave);
+
+  } catch (err) {
+    console.log(err);
+  }
+};
