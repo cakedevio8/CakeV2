@@ -1,11 +1,11 @@
 {
     "language": "vi",
-    "DeveloperMode": false,
+  "DeveloperMode": false,
     "autoCreateDB": true,
     "MAINTENANCE_MODE": false,
     "iconUnsend": {
         "status": true,
-        "icon": "❤"
+        "icon": "😡"
     },
     "notiGroup": false,
     "NOTIFICATION": true,
@@ -14,15 +14,15 @@
     "eventDisabled": [],
     "autoClean": true,
     "ACCESSTOKEN": "",
-    "BOTNAME": "Lương Trường Khôi",
-    "AMDIN_NAME": "Có lỗi báo mình fix qua link bên dưới:",
-    "FACEBOOK_ADMIN": "https://www.facebook.com/100018277053087",
-    "PREFIX": "/",
+    "BOTNAME": "𝙻𝚒𝙻𝚢",
+    "AMDIN_NAME": "King",
+    "FACEBOOK_ADMIN": "https://www.facebook.com/61561101096216",
+    "PREFIX": "^",
     "ADMINBOT": [
-        "100018277053087"
+        "61561101096216"
     ],
     "NDH": [
-        "100018277053087"
+        "61561101096216"
     ],
     "DATABASE": {
         "sqlite": {
@@ -42,7 +42,7 @@
     "menu": {
         "autoUnsend": {
             "status": true,
-            "timeOut": 90
+            "timeOut": 150
         },
         "delayUnsend": 60
     },
@@ -51,7 +51,7 @@
     },
     "daily": {
         "cooldownTime": 43200000,
-        "rewardCoin": 1000000
+        "rewardCoin": 10000
     },
     "anti": {
         "autoUnsend": true,
@@ -63,9 +63,6 @@
         "maxPlayers": 10,
         "getDelay": 8
     },
-    "cave": {
-        "cooldownTime": 86400
-    },
     "farm": {
         "cooldownTime": 300000
     },
@@ -76,4 +73,12 @@
     "minecraft": {
         "APIKEY": ""
     }
+}
+        "autoUnsend": true,
+        "delayUnsend": 60
+    },
+    "minecraft": {
+        "APIKEY": ""
+    }
+}
 }
