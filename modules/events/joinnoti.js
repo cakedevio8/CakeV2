@@ -1,105 +1,126 @@
+const axios = require("axios");
+const Canvas = require("canvas");
+const fs = require("fs");
+const moment = require("moment-timezone");
+
 module.exports.config = {
-	name: "joinnoti",
-	eventType: ["log:subscribe"],
-	version: "1.0.1",
-	credits: "Cake",
-	description: "Thông báo bot hoặc người vào nhóm + shareContact",
-	dependencies: {
-		"fs-extra": "",
-		"path": "",
-		"pidusage": ""
-	}
+  name: "joinnoti",
+  eventType: ["log:subscribe"],
+  version: "2.0.0",
+  credits: "Cake Country",
+  description: "Thông báo người vào nhóm + kết nối autosetname"
 };
-let _0 = x=>x<10?'0'+x:x;
-let time_str = time=>(d=>`${_0(d.getHours())}:${_0(d.getMinutes())}:${_0(d.getSeconds())} - ${_0(d.getDate())}/${_0(d.getMonth()+1)}/${d.getFullYear()} (Thứ ${d.getDay()==0?'Chủ Nhật':d.getDay()+1})`)(new Date(time));
-module.exports.onLoad = function () {
-    const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
-    const { join } = global.nodemodule["path"];
 
-	const path = join(__dirname, "cache", "joinGif");
-	if (existsSync(path)) mkdirSync(path, { recursive: true });	
+module.exports.run = async function({ api, event, Threads }) {
+  const { threadID } = event;
 
-	const path2 = join(__dirname, "cache", "joinGif", "randomgif");
-    if (!existsSync(path2)) mkdirSync(path2, { recursive: true });
+  const threadData = global.data.threadData.get(threadID) || {};
+  if (threadData.joinNoti === false) return;
 
-    return;
-}
+  // Nếu là bot vào thì bỏ qua (autosetname tự xử lý)
+  if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
 
+  const canvas = Canvas.createCanvas(1200, 630);
+  const ctx = canvas.getContext("2d");
 
-module.exports.run = async function({ api, event, Users  , Threads}) {
-    
-	const { join } = global.nodemodule["path"];
-	const { threadID } = event;
-  ////////////////////////////////////////////////////////
-  const thread = global.data.threadData.get(threadID) || {};
-  if (typeof thread["joinNoti"] != "undefined" && thread["joinNoti"] == false) return;
-  ///////////////////////////////////////////////////////
-	if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-		api.changeNickname(`⟬ ${global.config.PREFIX} ⟭ ➣ ${(!global.config.BOTNAME) ? "Made by cake" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
-		const fs = require("fs");
-    var mlg="⚜️═════[ Đã kết nối thành công ]══════⚜️\nHãy liên hệ với admin để thuê bot nha❤️\nDùng lệnh "callad" để liên hệ với admin\nFaceBook của admin:\nhttps://www.facebook.com/share/1Fv6QGTynR/"
-    	return api.sendMessage(threadID,async () => {
-await api.shareContact(`${mlg}`,61561101096216, threadID);
-});
+  // nền
+  const background = await Canvas.loadImage(__dirname + "/cache/background.png");
+  ctx.drawImage(background, 0, 0, 1200, 630);
 
-	}
-	else {
-		try {
-    const { threadName, participantIDs } = await api.getThreadInfo(threadID);
-    const time = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss - DD/MM/YYYY");
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
 
-    for (let user of event.logMessageData.addedParticipants) {
+  ctx.font = "bold 70px Arial";
+  ctx.fillText("⚡ BOT ĐÃ KẾT NỐI ⚡", 600, 250);
 
-      const name = user.fullName;
-      const uid = user.userFbId;
+  ctx.font = "40px Arial";
+  ctx.fillText("Sẵn sàng hoạt động trong nhóm này", 600, 330);
 
-      const canvas = Canvas.createCanvas(1200, 630);
-      const ctx = canvas.getContext("2d");
+  ctx.font = "35px Arial";
+  ctx.fillText(`Prefix: ${global.config.PREFIX}`, 600, 400);
 
-      // ===== LOAD BACKGROUND =====
-      const background = await Canvas.loadImage(__dirname + "/cache/background.png");
-      ctx.drawImage(background, 0, 0, 1200, 630);
+  const pathSave = __dirname + `/cache/bot_join.png`;
+  fs.writeFileSync(pathSave, canvas.toBuffer());
 
-      // ===== LOAD AVATAR =====
-      const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
-      const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
-      const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data, "binary"));
+  await api.sendMessage({
+    body: `✨═════[ KẾT NỐI THÀNH CÔNG ]═════✨
+Bot đã vào nhóm và sẵn sàng phục vụ ❤️
+Dùng ${global.config.PREFIX}help để xem lệnh.`,
+    attachment: fs.createReadStream(pathSave)
+  }, threadID);
 
-      // ===== VẼ AVATAR TRÒN (đúng khung giữa ảnh m gửi) =====
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(600, 315, 150, 0, Math.PI * 2, true); // chính giữa
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(avatarImg, 450, 165, 300, 300);
-      ctx.restore();
+  fs.unlinkSync(pathSave);
+  return;
+  }
 
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#2e4f2e";
+    // ===========================
+    // 🔥 GỌI AUTOSETNAME
+    // ===========================
+    try {
+      const data = await Threads.getData(threadID);
+      const prefix = data.data?.autosetname || "";
 
-      // ===== CHỮ PHÍA TRÊN =====
-      ctx.font = "bold 50px Arial";
-      ctx.fillText("Chào mừng thành viên mới", 600, 90);
+      if (prefix) {
+        await api.changeNickname(`${prefix} ${name}`, threadID, uid);
+      }
+    } catch (e) {}
 
-      ctx.font = "40px Arial";
-      ctx.fillText(`Bạn là thành viên thứ ${participantIDs.length}`, 600, 150);
+    // ===========================
+    // 🎨 TẠO ẢNH WELCOME
+    // ===========================
+    const canvas = Canvas.createCanvas(1200, 630);
+    const ctx = canvas.getContext("2d");
 
-      ctx.fillText(`Của nhóm ${threadName}`, 600, 200);
+    const background = await Canvas.loadImage(__dirname + "/cache/background.png");
+    ctx.drawImage(background, 0, 0, 1200, 630);
 
-      // ===== CHỮ PHÍA DƯỚI =====
-      ctx.font = "bold 45px Arial";
-      ctx.fillText(name, 600, 520);
+    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+    const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
+    const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data));
 
-      ctx.font = "30px Arial";
-      ctx.fillText(time, 600, 570);
+    // Crop avatar cho khỏi méo
+    const size = Math.min(avatarImg.width, avatarImg.height);
+    const sx = (avatarImg.width - size) / 2;
+    const sy = (avatarImg.height - size) / 2;
 
-      // ===== LƯU & GỬI =====
-      const pathSave = __dirname + `/cache/welcome_${uid}.png`;
-      fs.writeFileSync(pathSave, canvas.toBuffer())pwait api.sendMessage({
-  body: `🌱=====[THÀNH VIÊN VÀO NHÓM]=====🌱\nXin chào, bạn được thêm vào nhóm ${threadName}\nChúc bạn 1 ngày vui vẻ nhé❤️`,
-  mentions: [{
-    tag: name,
-    id: uid
-  }],
-  attachment: fs.createReadStream(pathSave)
-}, threadID);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(600, 315, 150, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(avatarImg, sx, sy, size, size, 450, 165, 300, 300);
+    ctx.restore();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#2e4f2e";
+
+    ctx.font = "bold 50px Arial";
+    ctx.fillText("Chào mừng thành viên mới", 600, 90);
+
+    ctx.font = "40px Arial";
+    ctx.fillText(`Bạn là thành viên thứ ${participantIDs.length}`, 600, 150);
+    ctx.fillText(`Của nhóm ${threadName}`, 600, 200);
+
+    ctx.font = "bold 45px Arial";
+    ctx.fillText(name, 600, 520);
+
+    ctx.font = "30px Arial";
+    ctx.fillText(time, 600, 570);
+
+    const pathSave = __dirname + `/cache/welcome_${uid}.png`;
+    fs.writeFileSync(pathSave, canvas.toBuffer());
+
+    await api.sendMessage({
+      body: `🌱=====[THÀNH VIÊN VÀO NHÓM]=====🌱
+Xin chào ${name}
+Chào mừng bạn đến với ${threadName} ❤️`,
+      mentions: [{
+        tag: name,
+        id: uid
+      }],
+      attachment: fs.createReadStream(pathSave)
+    }, threadID);
+
+    fs.unlinkSync(pathSave);
+  }
+};
