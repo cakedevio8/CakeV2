@@ -32,10 +32,28 @@ module.exports.run = async function ({ api, event, Users }) {
 
     // ===== LOAD BACKGROUND =====
     const background = await Canvas.loadImage(__dirname + "/cache/leave_bg.png");
-    ctx.drawImage(background, 0, 0, 1200, 630);
+
+const canvasRatio = 1200 / 630;
+const bgRatio = background.width / background.height;
+
+let drawWidth, drawHeight, offsetX, offsetY;
+
+if (bgRatio > canvasRatio) {
+  drawHeight = 630;
+  drawWidth = background.width * (630 / background.height);
+  offsetX = (1200 - drawWidth) / 2;
+  offsetY = 0;
+} else {
+  drawWidth = 1200;
+  drawHeight = background.height * (1200 / background.width);
+  offsetX = 0;
+  offsetY = (630 - drawHeight) / 2;
+}
+
+ctx.drawImage(background, offsetX, offsetY, drawWidth, drawHeight);
 
     // ===== LOAD AVATAR =====
-    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+    const avatarURL = `https://graph.facebook.com/${uid}/picture?type=large`;
     const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
     const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data));
 
@@ -68,19 +86,19 @@ module.exports.run = async function ({ api, event, Users }) {
     ctx.shadowOffsetY = 3;
 
     // ===== CHỮ PHÍA TRÊN =====
-    ctx.font = "bold 55px Arial";
+    ctx.font = "bold 45px Arial";
     ctx.fillText("Tạm biệt thành viên", 600, 90);
 
-    ctx.font = "42px Arial";
+    ctx.font = "38px Arial";
     ctx.fillText(`Thành viên hiện tại: ${participantIDs.length}`, 600, 150);
 
     ctx.fillText(`Nhóm: ${threadName}`, 600, 200);
 
     // ===== CHỮ PHÍA DƯỚI =====
-    ctx.font = "bold 50px Arial";
+    ctx.font = "bold 45px Arial";
     ctx.fillText(name, 600, 520);
 
-    ctx.font = "30px Arial";
+    ctx.font = "25px Arial";
     ctx.fillText(type, 600, 560);
 
     ctx.fillText(time, 600, 600);
