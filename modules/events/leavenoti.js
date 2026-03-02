@@ -35,30 +35,30 @@ module.exports.run = async function ({ api, event, Users }) {
     ctx.drawImage(background, 0, 0, 1200, 630);
 
     // ===== LOAD AVATAR =====
-const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
-const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
-const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data));
+    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+    const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
+    const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data));
 
-// ===== CROP ẢNH TRÁNH MÉO =====
-const size = Math.min(avatarImg.width, avatarImg.height);
-const sx = (avatarImg.width - size) / 2;
-const sy = (avatarImg.height - size) / 2;
+    // ===== CROP ẢNH TRÁNH MÉO =====
+    const size = Math.min(avatarImg.width, avatarImg.height);
+    const sx = (avatarImg.width - size) / 2;
+    const sy = (avatarImg.height - size) / 2;
 
-// ===== VẼ AVATAR TRÒN + VIỀN =====
-ctx.save();
-ctx.beginPath();
-ctx.arc(600, 315, 160, 0, Math.PI * 2);
-ctx.closePath();
-ctx.clip();
-ctx.drawImage(avatarImg, sx, sy, size, size, 440, 155, 320, 320);
-ctx.restore();
+    // ===== VẼ AVATAR TRÒN + VIỀN =====
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(600, 315, 160, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(avatarImg, sx, sy, size, size, 440, 155, 320, 320);
+    ctx.restore();
 
-// Viền trắng
-ctx.beginPath();
-ctx.arc(600, 315, 160, 0, Math.PI * 2);
-ctx.lineWidth = 8;
-ctx.strokeStyle = "#ffffff";
-ctx.stroke();
+    // Viền trắng
+    ctx.beginPath();
+    ctx.arc(600, 315, 160, 0, Math.PI * 2);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
     // ===== BÓNG ĐỔ =====
     ctx.textAlign = "center";
     ctx.fillStyle = "#2e4f2e";
