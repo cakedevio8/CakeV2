@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "joinnoti",
   eventType: ["log:subscribe"],
-  version: "3.0.0",
+  version: "3.5.0",
   credits: "Cake Country",
-  description: "Join Premium + Auto Set Name",
+  description: "Join Premium Stable",
 };
 
 module.exports.run = async function ({ api, event, Users }) {
@@ -12,142 +12,156 @@ module.exports.run = async function ({ api, event, Users }) {
   const Canvas = require("canvas");
   const moment = require("moment-timezone");
 
-  const { threadID } = event;
+  const { threadID, logMessageData } = event;
   const botID = api.getCurrentUserID();
 
   try {
 
-    // ===== BOT ĐƯỢC THÊM =====
-    if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
+    // ===== BOT VÀO NHÓM =====
+    if (logMessageData.addedParticipants.some(i => i.userFbId == botID)) {
+      const bannerPath = __dirname + "/cache/bot_banner.png";
 
-  const fs = require("fs-extra");
-  const path = __dirname + "/cache/bot_banner.png"; // ảnh banner của m
+      api.changeNickname(
+        `⟬ ${global.config.PREFIX} ⟭ ➣ ${(!global.config.BOTNAME) ? "Made by Khôi" : global.config.BOTNAME}`,
+        threadID,
+        botID
+      );
 
-  // ===== AUTO SET NICKNAME =====
-  api.changeNickname(
-    `⟬ ${global.config.PREFIX} ⟭ ➣ ${(!global.config.BOTNAME) ? "Made by Khôi" : global.config.BOTNAME}`,
-    threadID,
-    api.getCurrentUserID()
-  );
-
-  // ===== GỬI ẢNH + TIN NHẮN =====
-  return api.sendMessage({
-    body:
+      return api.sendMessage({
+        body:
 `🌸━━━━━━━━━━━━━━━━━━🌸
 ✨ 𝐊𝐄̂́𝐓 𝐍𝐎̂́𝐈 𝐓𝐇𝐀̀𝐍𝐇 𝐂𝐎̂𝐍𝐆 ✨
 🌸━━━━━━━━━━━━━━━━━━🌸
 
 🤖 Bot đã sẵn sàng hoạt động!
-
 📌 Prefix: ${global.config.PREFIX}
-💎 Gõ help để xem lệnh
-🔥 Chúc nhóm hoạt động vui vẻ`,
-    attachment: fs.existsSync(path) ? fs.createReadStream(path) : null
-  }, threadID);
-
+💎 Gõ help để xem lệnh`,
+        attachment: fs.existsSync(bannerPath) ? fs.createReadStream(bannerPath) : null
+      }, threadID);
     }
 
-    // ===== MEMBER THƯỜNG VÀO =====
+    // ===== MEMBER VÀO =====
     const { threadName, participantIDs } = await api.getThreadInfo(threadID);
 
-    const uid = event.logMessageData.addedParticipants[0].userFbId;
-    const name = await Users.getNameUser(uid);
-    const time = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss - DD/MM/YYYY");
+    for (let newMem of logMessageData.addedParticipants) {
+      const uid = newMem.userFbId;
+      if (uid == botID) continue;
 
-    const canvas = Canvas.createCanvas(1200, 630);
-    const ctx = canvas.getContext("2d");
+      const name = await Users.getNameUser(uid);
+      const time = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss - DD/MM/YYYY");
 
-    // ===== BACKGROUND =====
-    const background = await Canvas.loadImage(__dirname + "/cache/join_bg.png");
+      const canvas = Canvas.createCanvas(1200, 630);
+      const ctx = canvas.getContext("2d");
 
-    const canvasRatio = 1200 / 630;
-    const bgRatio = background.width / background.height;
+      // ===== BACKGROUND CHỐNG MÉO =====
+      const bgPath = __dirname + "/cache/join_bg.png";
+      if (!fs.existsSync(bgPath)) {
+        console.log("Thiếu join_bg.png");
+        return;
+      }
 
-    let drawWidth, drawHeight, offsetX, offsetY;
+      const background = await Canvas.loadImage(bgPath);
 
-    if (bgRatio > canvasRatio) {
-      drawHeight = 630;
-      drawWidth = background.width * (630 / background.height);
-      offsetX = (1200 - drawWidth) / 2;
-      offsetY = 0;
-    } else {
-      drawWidth = 1200;
-      drawHeight = background.height * (1200 / background.width);
-      offsetX = 0;
-      offsetY = (630 - drawHeight) / 2;
-    }
+      let imgRatio = background.width / background.height;
+      let canvasRatio = canvas.width / canvas.height;
+      let renderW, renderH, x, y;
 
-    ctx.drawImage(background, offsetX, offsetY, drawWidth, drawHeight);
+      if (imgRatio > canvasRatio) {
+        renderH = canvas.height;
+        renderW = background.width * (canvas.height / background.height);
+        x = (canvas.width - renderW) / 2;
+        y = 0;
+      } else {
+        renderW = canvas.width;
+        renderH = background.height * (canvas.width / background.width);
+        x = 0;
+        y = (canvas.height - renderH) / 2;
+      }
 
-    // ===== AVATAR =====
-    const avatarURL = `https://graph.facebook.com/${uid}/picture?type=large`;
-    const avatar = await axios.get(avatarURL, { responseType: "arraybuffer" });
-    const avatarImg = await Canvas.loadImage(Buffer.from(avatar.data));
+      ctx.drawImage(background, x, y, renderW, renderH);
 
-    const size = Math.min(avatarImg.width, avatarImg.height);
-    const sx = (avatarImg.width - size) / 2;
-    const sy = (avatarImg.height - size) / 2;
+      // ===== LOAD AVATAR =====
+      let avatarImg;
+      try {
+        const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+        const res = await axios.get(avatarURL, { responseType: "arraybuffer" });
+        avatarImg = await Canvas.loadImage(Buffer.from(res.data));
+      } catch {
+        avatarImg = null;
+      }
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(600, 315, 160, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(avatarImg, sx, sy, size, size, 440, 155, 320, 320);
-    ctx.restore();
+      // ===== VẼ AVATAR =====
+      if (avatarImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(600, 315, 160, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
 
-    ctx.beginPath();
-    ctx.arc(600, 315, 160, 0, Math.PI * 2);
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = "#ffffff";
-    ctx.stroke();
+        const size = Math.min(avatarImg.width, avatarImg.height);
+        const sx = (avatarImg.width - size) / 2;
+        const sy = (avatarImg.height - size) / 2;
 
-    // ===== TEXT =====
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(0,0,0,0.6)";
-    ctx.shadowBlur = 18;
+        ctx.drawImage(avatarImg, sx, sy, size, size, 440, 155, 320, 320);
+        ctx.restore();
 
-    ctx.font = "bold 45px Arial";
-    ctx.fillText("CHÀO MỪNG THÀNH VIÊN MỚI", 600, 90);
+        ctx.beginPath();
+        ctx.arc(600, 315, 160, 0, Math.PI * 2);
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+      }
 
-    ctx.font = "38px Arial";
-    ctx.fillText(`Thành viên hiện tại: ${participantIDs.length}`, 600, 150);
-    ctx.fillText(`Nhóm: ${threadName}`, 600, 200);
+      // ===== TEXT STYLE =====
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 15;
 
-    ctx.font = "bold 45px Arial";
-    ctx.fillText(name, 600, 520);
+      ctx.font = "bold 45px sans-serif";
+      ctx.fillText("CHÀO MỪNG THÀNH VIÊN MỚI", 600, 90);
 
-    ctx.font = "25px Arial";
-    ctx.fillText("Đã tham gia nhóm", 600, 560);
-    ctx.fillText(time, 600, 600);
+      ctx.font = "35px sans-serif";
+      ctx.fillText(`Nhóm: ${threadName}`, 600, 150);
+      ctx.fillText(`Thành viên hiện tại: ${participantIDs.length}`, 600, 200);
 
-    ctx.shadowBlur = 0;
+      // ===== AUTO CO TÊN =====
+      function drawAutoName(text, maxWidth) {
+        let fontSize = 50;
+        do {
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          fontSize--;
+        } while (ctx.measureText(text).width > maxWidth && fontSize > 25);
+        ctx.fillText(text, 600, 520);
+      }
 
-    const pathSave = __dirname + `/cache/join_${uid}.png`;
-    fs.writeFileSync(pathSave, canvas.toBuffer());
+      drawAutoName(name, 1000);
 
-    await api.sendMessage({
-      body:
+      ctx.font = "25px sans-serif";
+      ctx.fillText(time, 600, 580);
+
+      ctx.shadowBlur = 0;
+
+      const pathSave = __dirname + `/cache/join_${uid}.png`;
+      fs.writeFileSync(pathSave, canvas.toBuffer());
+
+      await api.sendMessage({
+        body:
 `🌿━━━━━━━━━━━━━━━━━━🌿
 🎉 𝐂𝐇𝐀̀𝐎 𝐌𝐔̛̀𝐍𝐆 𝐓𝐇𝐀̀𝐍𝐇 𝐕𝐈𝐄̂𝐍 🎉
 🌿━━━━━━━━━━━━━━━━━━🌿
 
 👤 ${name}
-📌 Đã tham gia nhóm
-
 🏷 Nhóm: ${threadName}
 ⏰ ${time}
 
 Chúc bạn có những phút giây vui vẻ ✨`,
-      mentions: [{
-        tag: name,
-        id: uid
-      }],
-      attachment: fs.createReadStream(pathSave)
-    }, threadID);
+        mentions: [{ tag: name, id: uid }],
+        attachment: fs.createReadStream(pathSave)
+      }, threadID);
 
-    fs.unlinkSync(pathSave);
+      fs.unlinkSync(pathSave);
+    }
 
   } catch (err) {
     console.log("JOIN ERROR:", err);
